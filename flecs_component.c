@@ -7,6 +7,8 @@ uint64_t exports_flecs_world_create_world() {
     printf("DEBUG: Calling ecs_os_set_api_defaults\n");
     ecs_os_set_api_defaults();
     
+    printf("DEBUG: OS API calloc_: %p\n", (void*)ecs_os_api.calloc_);
+
     // ecs_init creates and returns a new world.
     // We cast the pointer to a 64-bit integer to pass it across the WASM boundary.
     ecs_world_t* world = ecs_init();
