@@ -1,5 +1,6 @@
 #include "flecs.h"
 #include <flecs.h>
+#include <stdio.h>
 // Implementation for: export create-world: func() -> world-handle;
 uint64_t exports_flecs_world_create_world() {
 
