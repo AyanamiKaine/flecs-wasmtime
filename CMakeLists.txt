@@ -137,10 +137,13 @@ if(BUILD_WASM_COMPONENT)
         "-I${CMAKE_CURRENT_SOURCE_DIR}/include"
         "-I${WIT_GEN_DIR}"
         "-U__STDC_LIB_EXT1__"
+        "-DFLECS_NDEBUG"               # Keep this to avoid assertion issues
         "-DECS_TARGET_POSIX"
         "-DECS_TARGET_WASMTIME"
         "-DFLECS_CUSTOM_BUILD"
         "-DFLECS_META"
+        "-DFLECS_OS_API_IMPL"          # Enable OS API implementation
+        "-D_WASI_EMULATED_PTHREAD"     # Enable WASI pthread emulation
     )
 
     set(WASM_LDFLAGS
