@@ -85,14 +85,11 @@ endif()
 if(BUILD_WASM_COMPONENT)
     message(STATUS "Standalone WebAssembly component build is enabled.")
 
-    # --- Toolchain and SDK Configuration ---
     find_program(WIT_BINDGEN_CLI wit-bindgen REQUIRED)
-    # Find the WASI SDK. Prioritize user-set CMake variable, then check environment variable.
     if(NOT WASI_SDK_PATH AND DEFINED ENV{WASI_SDK_ROOT})
         set(WASI_SDK_PATH "$ENV{WASI_SDK_ROOT}" CACHE PATH "Path to the WASI SDK root directory")
     endif()
 
-    # If the path is still not defined, stop and inform the user.
     if(NOT WASI_SDK_PATH)
         message(FATAL_ERROR 
             "WASI SDK path not found. \n"
@@ -101,7 +98,6 @@ if(BUILD_WASM_COMPONENT)
         )
     endif()
 
-    # Verify the path is valid by finding the clang compiler within it.
     find_program(CC clang
         PATHS "${WASI_SDK_PATH}/bin"
         NO_DEFAULT_PATH
@@ -111,14 +107,12 @@ if(BUILD_WASM_COMPONENT)
     message(STATUS "Found WASI SDK at: ${WASI_SDK_PATH}")
     message(STATUS "Using WASI clang: ${CC}")
 
-    # --- File Definitions ---
     set(WIT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/flecs.wit")
     set(WIT_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/wit_gen")
     set(WIT_GENERATED_C_SRC "${WIT_GEN_DIR}/flecs_world.c")
     set(WIT_GENERATED_H "${WIT_GEN_DIR}/flecs_world.h")
     set(WIT_GENERATED_COMPONENT_TYPE_OBJ "${WIT_GEN_DIR}/flecs_world_component_type.o")
 
-    # --- Custom Command for wit-bindgen ---
     add_custom_command(
         OUTPUT ${WIT_GENERATED_C_SRC} ${WIT_GENERATED_H} ${WIT_GENERATED_COMPONENT_TYPE_OBJ}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${WIT_GEN_DIR}
@@ -128,7 +122,6 @@ if(BUILD_WASM_COMPONENT)
     )
     add_custom_target(WitGen ALL DEPENDS ${WIT_GENERATED_C_SRC})
 
-    # --- Define All Source Files for the Component ---
     set(WASM_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/distr/flecs.c
         ${CMAKE_CURRENT_SOURCE_DIR}/flecs_component.c
@@ -136,7 +129,6 @@ if(BUILD_WASM_COMPONENT)
         ${WIT_GENERATED_COMPONENT_TYPE_OBJ}
     )
 
-    # --- Define the EXACT Flags Required ---
     set(WASM_CFLAGS
         "-g"
         "-I${CMAKE_CURRENT_SOURCE_DIR}"
@@ -159,7 +151,6 @@ if(BUILD_WASM_COMPONENT)
         "-Wl,--no-entry"
     )
 
-    # --- Single Command to Build the Final Wasm Component ---
     set(FINAL_WASM_TARGET "${CMAKE_CURRENT_BINARY_DIR}/flecs.wasm")
     add_custom_command(
         OUTPUT ${FINAL_WASM_TARGET}
@@ -168,7 +159,6 @@ if(BUILD_WASM_COMPONENT)
         COMMENT "Compiling and linking final component: flecs.wasm"
     )
 
-    # --- Custom Target to Trigger the Build ---
     add_custom_target(flecs-component ALL DEPENDS ${FINAL_WASM_TARGET})
 
     message(STATUS "Configured 'flecs-component' target. Run 'ninja' or 'make' to build.")
