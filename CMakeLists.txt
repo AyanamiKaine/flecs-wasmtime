@@ -87,8 +87,29 @@ if(BUILD_WASM_COMPONENT)
 
     # --- Toolchain and SDK Configuration ---
     find_program(WIT_BINDGEN_CLI wit-bindgen REQUIRED)
-    set(WASI_SDK_PATH "/home/ayanami/wasi-sdk-25.0-x86_64-linux" CACHE PATH "Path to WASI SDK")
-    set(CC "${WASI_SDK_PATH}/bin/clang")
+    # Find the WASI SDK. Prioritize user-set CMake variable, then check environment variable.
+    if(NOT WASI_SDK_PATH AND DEFINED ENV{WASI_SDK_ROOT})
+        set(WASI_SDK_PATH "$ENV{WASI_SDK_ROOT}" CACHE PATH "Path to the WASI SDK root directory")
+    endif()
+
+    # If the path is still not defined, stop and inform the user.
+    if(NOT WASI_SDK_PATH)
+        message(FATAL_ERROR 
+            "WASI SDK path not found. \n"
+            "Please set the WASI_SDK_ROOT environment variable, \n"
+            "or pass the path to CMake: -DWASI_SDK_PATH=/path/to/wasi-sdk"
+        )
+    endif()
+
+    # Verify the path is valid by finding the clang compiler within it.
+    find_program(CC clang
+        PATHS "${WASI_SDK_PATH}/bin"
+        NO_DEFAULT_PATH
+        REQUIRED
+    )
+
+    message(STATUS "Found WASI SDK at: ${WASI_SDK_PATH}")
+    message(STATUS "Using WASI clang: ${CC}")
 
     # --- File Definitions ---
     set(WIT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/flecs.wit")
