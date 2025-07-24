@@ -7,6 +7,7 @@ option(FLECS_STATIC "Build static flecs lib" ON)
 option(FLECS_SHARED "Build shared flecs lib" ON)
 option(FLECS_PIC "Compile static flecs lib with position independent code (PIC)" ON)
 option(FLECS_TESTS "Build flecs tests" OFF)
+option(BUILD_WASM_COMPONENT "Build the Flecs WASM component" OFF)
 
 include(cmake/target_default_compile_warnings.cmake)
 include(cmake/target_default_compile_options.cmake)
@@ -79,6 +80,77 @@ endif()
 if(FLECS_TESTS)
     enable_testing()
     add_subdirectory(test)
+endif()
+
+if(BUILD_WASM_COMPONENT)
+    message(STATUS "Standalone WebAssembly component build is enabled.")
+
+    # --- Toolchain and SDK Configuration ---
+    find_program(WIT_BINDGEN_CLI wit-bindgen REQUIRED)
+    set(WASI_SDK_PATH "/home/ayanami/wasi-sdk-25.0-x86_64-linux" CACHE PATH "Path to WASI SDK")
+    set(CC "${WASI_SDK_PATH}/bin/clang")
+
+    # --- File Definitions ---
+    set(WIT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/flecs.wit")
+    set(WIT_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/wit_gen")
+    set(WIT_GENERATED_C_SRC "${WIT_GEN_DIR}/flecs_world.c")
+    set(WIT_GENERATED_H "${WIT_GEN_DIR}/flecs_world.h")
+    set(WIT_GENERATED_COMPONENT_TYPE_OBJ "${WIT_GEN_DIR}/flecs_world_component_type.o")
+
+    # --- Custom Command for wit-bindgen ---
+    add_custom_command(
+        OUTPUT ${WIT_GENERATED_C_SRC} ${WIT_GENERATED_H} ${WIT_GENERATED_COMPONENT_TYPE_OBJ}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${WIT_GEN_DIR}
+        COMMAND ${WIT_BINDGEN_CLI} c --out-dir ${WIT_GEN_DIR} ${WIT_FILE}
+        DEPENDS ${WIT_FILE}
+        COMMENT "Generating bindings from flecs.wit"
+    )
+    add_custom_target(WitGen ALL DEPENDS ${WIT_GENERATED_C_SRC})
+
+    # --- Define All Source Files for the Component ---
+    set(WASM_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/distr/flecs.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/flecs_component.c
+        ${WIT_GENERATED_C_SRC}
+        ${WIT_GENERATED_COMPONENT_TYPE_OBJ}
+    )
+
+    # --- Define the EXACT Flags Required ---
+    set(WASM_CFLAGS
+        "-g"
+        "-I${CMAKE_CURRENT_SOURCE_DIR}"
+        "-I${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "-I${WIT_GEN_DIR}"
+        "-U__STDC_LIB_EXT1__"
+        "-DECS_TARGET_POSIX"
+        "-DECS_TARGET_WASMTIME"
+        "-DFLECS_CUSTOM_BUILD"
+        "-DFLECS_META"
+    )
+
+    set(WASM_LDFLAGS
+        "-mexec-model=reactor"
+        "--target=wasm32-wasi"
+        "-lwasi-emulated-pthread"
+        "-Wl,--max-memory=16777216"
+        "-Wl,--export-dynamic"
+        "-Wl,--allow-undefined"
+        "-Wl,--no-entry"
+    )
+
+    # --- Single Command to Build the Final Wasm Component ---
+    set(FINAL_WASM_TARGET "${CMAKE_CURRENT_BINARY_DIR}/flecs.wasm")
+    add_custom_command(
+        OUTPUT ${FINAL_WASM_TARGET}
+        COMMAND ${CC} ${WASM_CFLAGS} ${WASM_SOURCES} -o ${FINAL_WASM_TARGET} ${WASM_LDFLAGS}
+        DEPENDS ${WASM_SOURCES} WitGen
+        COMMENT "Compiling and linking final component: flecs.wasm"
+    )
+
+    # --- Custom Target to Trigger the Build ---
+    add_custom_target(flecs-component ALL DEPENDS ${FINAL_WASM_TARGET})
+
+    message(STATUS "Configured 'flecs-component' target. Run 'ninja' or 'make' to build.")
 endif()
 
 message(STATUS "Targets: ${FLECS_TARGETS}")
