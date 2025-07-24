@@ -1,6 +1,8 @@
 #include "flecs.h"
 #include <flecs.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // Define a type for clarity that matches Flecs's internal size type.
 // Flecs uses ecs_size_t, which is typically a signed int.
