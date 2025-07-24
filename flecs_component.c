@@ -1,13 +1,24 @@
 #include "flecs.h"
 #include <flecs.h>
 #include <stdio.h>
+
+void initialize_flecs_os_api_for_wasi() {
+    ecs_os_set_api_defaults();
+    
+    ecs_os_api_t os_api = ecs_os_get_api();
+    os_api.malloc_ = malloc;
+    os_api.realloc_ = realloc;
+    os_api.calloc_ = calloc;
+    os_api.free_ = free;
+    os_api.get_time_ = NULL;
+
+    ecs_os_set_api(&os_api);
+}
+
 // Implementation for: export create-world: func() -> world-handle;
 uint64_t exports_flecs_world_create_world() {
 
-    printf("DEBUG: Calling ecs_os_set_api_defaults\n");
-    ecs_os_set_api_defaults();
-    
-    printf("DEBUG: OS API calloc_: %p\n", (void*)ecs_os_api.calloc_);
+    initialize_flecs_os_api_for_wasi();
 
     // ecs_init creates and returns a new world.
     // We cast the pointer to a 64-bit integer to pass it across the WASM boundary.
