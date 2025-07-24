@@ -130,7 +130,9 @@ if(BUILD_WASM_COMPONENT)
     )
 
     set(WASM_CFLAGS
-        "-g"
+        "-g3"
+        "-O0"
+        "-fno-omit-frame-pointer"
         "-I${CMAKE_CURRENT_SOURCE_DIR}"
         "-I${CMAKE_CURRENT_SOURCE_DIR}/include"
         "-I${WIT_GEN_DIR}"
