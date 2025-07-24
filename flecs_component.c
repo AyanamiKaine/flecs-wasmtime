@@ -2,19 +2,69 @@
 #include <flecs.h>
 #include <stdio.h>
 
-void initialize_flecs_os_api_for_wasi() {
-    ecs_os_set_api_defaults();
-    
-    ecs_os_api_t os_api = ecs_os_get_api();
-    os_api.malloc_ = malloc;
-    os_api.realloc_ = realloc;
-    os_api.calloc_ = calloc;
-    os_api.free_ = free;
-    os_api.get_time_ = NULL;
+// Define a type for clarity that matches Flecs's internal size type.
+// Flecs uses ecs_size_t, which is typically a signed int.
+typedef int flecs_os_api_size_t;
 
-    ecs_os_set_api(&os_api);
+// --- Wrapper Functions ---
+
+// Wrapper for malloc
+static
+void* wasi_malloc_wrapper(flecs_os_api_size_t size) {
+    // Cast the 'int' size to 'size_t' for the real malloc
+    return malloc((size_t)size);
 }
 
+// Wrapper for realloc
+static
+void* wasi_realloc_wrapper(void *ptr, flecs_os_api_size_t size) {
+    // Cast the 'int' size to 'size_t' for the real realloc
+    return realloc(ptr, (size_t)size);
+}
+
+// Wrapper for calloc. Flecs's calloc_ expects one argument (total size),
+// while standard calloc takes two (count, member_size). We can simulate
+// it with malloc + memset to guarantee zero-initialized memory.
+static
+void* wasi_calloc_wrapper(flecs_os_api_size_t size) {
+    if (size == 0) {
+        return NULL;
+    }
+    // Cast the 'int' size to 'size_t' for malloc
+    void *ptr = malloc((size_t)size);
+    if (ptr) {
+        // calloc guarantees the memory is set to zero
+        memset(ptr, 0, (size_t)size);
+    }
+    return ptr;
+}
+
+// Wrapper for free (the signature already matches)
+static
+void wasi_free_wrapper(void *ptr) {
+    free(ptr);
+}
+
+
+// --- Your Initializer ---
+
+void initialize_flecs_os_api_for_wasi() {
+    // This is the correct pattern. Get the defaults first.
+    ecs_os_set_api_defaults();
+    
+    // Then get a copy of the API struct to modify
+    ecs_os_api_t os_api = ecs_os_get_api();
+    
+    // Now, assign your type-safe wrappers to the API function pointers
+    os_api.malloc_ = wasi_malloc_wrapper;
+    os_api.realloc_ = wasi_realloc_wrapper;
+    os_api.calloc_ = wasi_calloc_wrapper;
+    os_api.free_ = wasi_free_wrapper; // Good practice to wrap this too
+    os_api.get_time_ = NULL; // Keep this as is if you don't need time
+
+    // Finally, set the modified API back to Flecs
+    ecs_os_set_api(&os_api);
+}
 // Implementation for: export create-world: func() -> world-handle;
 uint64_t exports_flecs_world_create_world() {
 
