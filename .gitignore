@@ -11,5 +11,6 @@ bazel-*
 **/CMakeFiles/*
 .vs
 out
+wasmbuild
 docs/html
 MODULE.bazel.lock
