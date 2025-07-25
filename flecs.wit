@@ -1,7 +1,9 @@
 package component:flecs;
 
-
 interface flecs-world {
+    type ecs-id-t = u64;
+    type ecs-entity-t = ecs-id-t;
+
     ecs-init: func() -> u64;
     ecs-mini: func() -> u64;
     ecs-fini: func(world-handle: u64) -> s64;
@@ -9,8 +11,12 @@ interface flecs-world {
 }
 
 interface flecs-entity {
+    type ecs-id-t = u64;
+    type ecs-entity-t = ecs-id-t;
+
     ecs-new: func(world-handle: u64) -> u64;
     ecs-new-low-id: func(world-handle: u64) -> u64;
+    ecs-add-id: func(world-handle: u64, entity: ecs-entity-t, component: ecs-id-t);
 }
 
 
