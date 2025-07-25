@@ -69,12 +69,27 @@ void initialize_flecs_os_api_for_wasi() {
 }
 // Implementation for: export create-world: func() -> world-handle;
 uint64_t exports_flecs_world_create_world() {
+    printf("DEBUG: Creating a minimal world with ecs_mini().\n");
+    
+    // ecs_mini() creates a world without automatically importing any addons.
+    // This avoids the problematic flecs.meta addon.
+    ecs_world_t* world = ecs_mini();
 
-    initialize_flecs_os_api_for_wasi();
+    if (!world) {
+        printf("ERROR: Failed to create Flecs world with ecs_mini().\n");
+        return 0;
+    }
 
-    // ecs_init creates and returns a new world.
-    // We cast the pointer to a 64-bit integer to pass it across the WASM boundary.
-    ecs_world_t* world = ecs_init();
+    printf("DEBUG: World created. Manually importing safe addons...\n");
+
+    // Manually import the addons we need. These are known to be safe.
+    ECS_IMPORT(world, FlecsSystem);
+    ECS_IMPORT(world, FlecsPipeline);
+    ECS_IMPORT(world, FlecsTimer);
+
+    printf("SUCCESS: Flecs world is fully initialized and ready!\n");
+    
+    // Cast the pointer to a 64-bit integer to pass it across the WASM boundary.
     return (uint64_t)world;
 }
 

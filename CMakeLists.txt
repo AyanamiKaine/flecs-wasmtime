@@ -85,11 +85,11 @@ endif()
 if(BUILD_WASM_COMPONENT)
     message(STATUS "Standalone WebAssembly component build is enabled.")
 
+    # --- Find Tools ---
     find_program(WIT_BINDGEN_CLI wit-bindgen REQUIRED)
     if(NOT WASI_SDK_PATH AND DEFINED ENV{WASI_SDK_ROOT})
         set(WASI_SDK_PATH "$ENV{WASI_SDK_ROOT}" CACHE PATH "Path to the WASI SDK root directory")
     endif()
-
     if(NOT WASI_SDK_PATH)
         message(FATAL_ERROR 
             "WASI SDK path not found. \n"
@@ -97,13 +97,11 @@ if(BUILD_WASM_COMPONENT)
             "or pass the path to CMake: -DWASI_SDK_PATH=/path/to/wasi-sdk"
         )
     endif()
-
     find_program(CC clang
         PATHS "${WASI_SDK_PATH}/bin"
         NO_DEFAULT_PATH
         REQUIRED
     )
-
     message(STATUS "Found WASI SDK at: ${WASI_SDK_PATH}")
     message(STATUS "Using WASI clang: ${CC}")
 
@@ -112,7 +110,6 @@ if(BUILD_WASM_COMPONENT)
     set(WIT_GENERATED_C_SRC "${WIT_GEN_DIR}/flecs_world.c")
     set(WIT_GENERATED_H "${WIT_GEN_DIR}/flecs_world.h")
     set(WIT_GENERATED_COMPONENT_TYPE_OBJ "${WIT_GEN_DIR}/flecs_world_component_type.o")
-
     add_custom_command(
         OUTPUT ${WIT_GENERATED_C_SRC} ${WIT_GENERATED_H} ${WIT_GENERATED_COMPONENT_TYPE_OBJ}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${WIT_GEN_DIR}
@@ -123,13 +120,13 @@ if(BUILD_WASM_COMPONENT)
     add_custom_target(WitGen ALL DEPENDS ${WIT_GENERATED_C_SRC})
 
     set(WASM_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/distr/flecs.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/flecs_component.c
+        "${CMAKE_CURRENT_SOURCE_DIR}/distr/flecs.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/flecs_component.c"
         ${WIT_GENERATED_C_SRC}
         ${WIT_GENERATED_COMPONENT_TYPE_OBJ}
     )
 
-    set(WASM_CFLAGS
+    set(WASM_CFLAGS_BASE
         "-g3"
         "-O0"
         "-fno-omit-frame-pointer"
@@ -137,36 +134,46 @@ if(BUILD_WASM_COMPONENT)
         "-I${CMAKE_CURRENT_SOURCE_DIR}/include"
         "-I${WIT_GEN_DIR}"
         "-U__STDC_LIB_EXT1__"
-        "-DFLECS_NDEBUG"               # Keep this to avoid assertion issues
         "-DECS_TARGET_POSIX"
         "-DECS_TARGET_WASMTIME"
-        "-DFLECS_CUSTOM_BUILD"
-        "-DFLECS_META"
-        "-DFLECS_OS_API_IMPL"          # Enable OS API implementation
-        "-D_WASI_EMULATED_PTHREAD"     # Enable WASI pthread emulation
+        "-D_WASI_EMULATED_PTHREAD"
+        "-DFLECS_NO_REST"
+        "-DFLECS_NO_HTTP"
     )
-
     set(WASM_LDFLAGS
         "-mexec-model=reactor"
         "--target=wasm32-wasi"
         "-lwasi-emulated-pthread"
-        "-Wl,--max-memory=16777216"
-        "-Wl,--export-dynamic"
-        "-Wl,--allow-undefined"
         "-Wl,--no-entry"
     )
 
-    set(FINAL_WASM_TARGET "${CMAKE_CURRENT_BINARY_DIR}/flecs.wasm")
-    add_custom_command(
-        OUTPUT ${FINAL_WASM_TARGET}
-        COMMAND ${CC} ${WASM_CFLAGS} ${WASM_SOURCES} -o ${FINAL_WASM_TARGET} ${WASM_LDFLAGS}
-        DEPENDS ${WASM_SOURCES} WitGen
-        COMMENT "Compiling and linking final component: flecs.wasm"
+    function(add_flecs_wasm_target TARGET_NAME OUTPUT_FILENAME EXTRA_CFLAGS)
+        set(FINAL_WASM_TARGET "${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_FILENAME}")
+        set(TARGET_WASM_CFLAGS ${WASM_CFLAGS_BASE} ${EXTRA_CFLAGS})
+
+        add_custom_command(
+            OUTPUT ${FINAL_WASM_TARGET}
+            COMMAND ${CC} ${TARGET_WASM_CFLAGS} ${WASM_SOURCES} -o ${FINAL_WASM_TARGET} ${WASM_LDFLAGS}
+            DEPENDS ${WASM_SOURCES} WitGen
+            COMMENT "Compiling and linking ${TARGET_NAME} component: ${OUTPUT_FILENAME}"
+        )
+        add_custom_target(${TARGET_NAME} ALL DEPENDS ${FINAL_WASM_TARGET})
+    endfunction()
+
+    add_flecs_wasm_target(
+        flecs-component-release
+        "flecs.wasm"
+        "-DFLECS_NDEBUG"  
     )
 
-    add_custom_target(flecs-component ALL DEPENDS ${FINAL_WASM_TARGET})
+    # --- Define and Build the Debug Target ---
+    add_flecs_wasm_target(
+        flecs-component-dev
+        "flecs-dev.wasm"
+        ""                
+    )
 
-    message(STATUS "Configured 'flecs-component' target. Run 'ninja' or 'make' to build.")
+    message(STATUS "Configured 'flecs-component-release' (flecs.wasm) and 'flecs-component-dev' (flecs-dev.wasm) targets.")
 endif()
 
 message(STATUS "Targets: ${FLECS_TARGETS}")

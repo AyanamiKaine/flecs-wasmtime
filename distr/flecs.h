@@ -2696,22 +2696,25 @@ void ecs_os_set_api_defaults(void);
  */
 
 /* Memory management */
+/* TODO: IMPLEMENT A WASMTIME TARGET FOR THE CORRECT OS API CALLS!*/
+/* IN ESSENCE WHAT WE HAVE TO DO IS TO FIND EVERYTHING WINDOWS, LINUX, TARGET SPECIFIC API AND INSTEAD USE A WASM COMPATIBLE ONE!!!*/
 #ifndef ecs_os_malloc
-#define ecs_os_malloc(size) ecs_os_api.malloc_(size)
+#define ecs_os_malloc(size)      malloc((size_t)size)
 #endif
 #ifndef ecs_os_free
-#define ecs_os_free(ptr) ecs_os_api.free_(ptr)
+#define ecs_os_free(ptr)         free(ptr)
 #endif
 #ifndef ecs_os_realloc
-#define ecs_os_realloc(ptr, size) ecs_os_api.realloc_(ptr, size)
+#define ecs_os_realloc(ptr, size) realloc(ptr, (size_t)size)
 #endif
 #ifndef ecs_os_calloc
-#define ecs_os_calloc(size) ecs_os_api.calloc_(size)
+#define ecs_os_calloc(size)      calloc(1, (size_t)size)
 #endif
+
 #if defined(ECS_TARGET_WINDOWS)
-#define ecs_os_alloca(size) _alloca((size_t)(size))
+#define ecs_os_alloca(size) malloc((size_t)size)
 #else
-#define ecs_os_alloca(size) alloca((size_t)(size))
+#define ecs_os_alloca(size) malloc((size_t)size)
 #endif
 
 #define ecs_os_malloc_t(T) ECS_CAST(T*, ecs_os_malloc(ECS_SIZEOF(T)))
@@ -2726,8 +2729,9 @@ void ecs_os_set_api_defaults(void);
 
 /* Strings */
 #ifndef ecs_os_strdup
-#define ecs_os_strdup(str) ecs_os_api.strdup_(str)
+#define ecs_os_strdup(str)       strdup(str)
 #endif
+
 
 #ifdef __cplusplus
 #define ecs_os_strlen(str) static_cast<ecs_size_t>(strlen(str))

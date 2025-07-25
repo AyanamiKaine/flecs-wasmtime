@@ -4644,11 +4644,13 @@ void flecs_bootstrap_sanity_check(
 void flecs_bootstrap(
     ecs_world_t *world)
 {
+    printf("BOOTSTRAP: Step 1 --- BOOTSTRAP START ---\n");
     ecs_log_push();
 
     ecs_set_name_prefix(world, "Ecs");
 
     /* Ensure builtin ids are alive */
+    printf("BOOTSTRAP: Step 2 Ensure builtin ids are alive\n");
     flecs_bootstrap_make_alive(world, ecs_id(EcsComponent));
     flecs_bootstrap_make_alive(world, ecs_id(EcsIdentifier));
     flecs_bootstrap_make_alive(world, ecs_id(EcsPoly));
@@ -4707,6 +4709,7 @@ void flecs_bootstrap(
     });
 
     /* Create and cache often used id records on world */
+    printf("BOOTSTRAP: Step 3 Create and cache often used id records on world");
     flecs_components_init(world);
 
     /* Create table for builtin components. This table temporarily stores the 
@@ -4737,7 +4740,10 @@ void flecs_bootstrap(
     });
 
     /* Populate core module */
+    printf("BOOTSTRAP: Step 4 - Populate core module\n");
     ecs_set_scope(world, EcsFlecsCore);
+
+    printf("BOOTSTRAP: Step 5 - Initializing builtin tags\n");
 
     flecs_bootstrap_tag(world, EcsName);
     flecs_bootstrap_tag(world, EcsSymbol);
@@ -4753,6 +4759,8 @@ void flecs_bootstrap(
     flecs_bootstrap_tag(world, EcsDisabled);
     flecs_bootstrap_tag(world, EcsNotQueryable);
     flecs_bootstrap_tag(world, EcsEmpty);
+
+    printf("BOOTSTRAP: Step 6 - Initialize builtin modules\n");
 
     /* Initialize builtin modules */
     ecs_set_name(world, EcsFlecs, "flecs");
@@ -4774,6 +4782,8 @@ void flecs_bootstrap(
     ecs_assert(r->row & EcsEntityIsTraversable, ECS_INTERNAL_ERROR, NULL);
     (void)r;
 
+
+    printf("BOOTSTRAP: Step 7 - Initialize builtin entities\n");
     /* Initialize builtin entities */
     flecs_bootstrap_entity(world, EcsWorld, "World", EcsFlecsCore);
     flecs_bootstrap_entity(world, EcsWildcard, "*", EcsFlecsCore);
@@ -4782,6 +4792,8 @@ void flecs_bootstrap(
     flecs_bootstrap_entity(world, EcsVariable, "$", EcsFlecsCore);
     flecs_bootstrap_entity(world, EcsFlag, "Flag", EcsFlecsCore);
 
+
+    printf("BOOTSTRAP: Step 8 - Component/relationship properties\n");
     /* Component/relationship properties */
     flecs_bootstrap_trait(world, EcsTransitive);
     flecs_bootstrap_trait(world, EcsReflexive);
@@ -4815,6 +4827,8 @@ void flecs_bootstrap(
 
     flecs_bootstrap_tag(world, EcsOrderedChildren);
 
+
+    printf("BOOTSTRAP: Step 9 - Builtin predicates\n");
     /* Builtin predicates */
     flecs_bootstrap_tag(world, EcsPredEq);
     flecs_bootstrap_tag(world, EcsPredMatch);
@@ -4822,11 +4836,13 @@ void flecs_bootstrap(
     flecs_bootstrap_tag(world, EcsScopeOpen);
     flecs_bootstrap_tag(world, EcsScopeClose);
 
+    printf("BOOTSTRAP: Step 10 - Builtin relationships\n");
     /* Builtin relationships */
     flecs_bootstrap_tag(world, EcsIsA);
     flecs_bootstrap_tag(world, EcsChildOf);
     flecs_bootstrap_tag(world, EcsDependsOn);
 
+    printf("BOOTSTRAP: Step 12 - Builtin events\n");
     /* Builtin events */
     flecs_bootstrap_entity(world, EcsOnAdd, "OnAdd", EcsFlecsCore);
     flecs_bootstrap_entity(world, EcsOnRemove, "OnRemove", EcsFlecsCore);
@@ -4835,6 +4851,7 @@ void flecs_bootstrap(
     flecs_bootstrap_entity(world, EcsOnTableCreate, "OnTableCreate", EcsFlecsCore);
     flecs_bootstrap_entity(world, EcsOnTableDelete, "OnTableDelete", EcsFlecsCore);
 
+    printf("BOOTSTRAP: Step 12 - Sync properties of ChildOf and Identifier with bootstrapped flags\n");
     /* Sync properties of ChildOf and Identifier with bootstrapped flags */
     ecs_add_pair(world, EcsChildOf, EcsOnDeleteTarget, EcsDelete);
     ecs_add_id(world, EcsChildOf, EcsTrait);
@@ -4846,16 +4863,19 @@ void flecs_bootstrap(
     /* Create triggers in internals scope */
     ecs_set_scope(world, EcsFlecsInternals);
 
+   printf("BOOTSTRAP: Step 13 - Register observers for components/relationship properties\n");
     /* Register observers for components/relationship properties. Most observers
      * set flags on an component record when a trait is added to a component, which
      * allows for quick trait testing in various operations. */
-    ecs_observer(world, {
+    
+    printf("BOOTSTRAP: Step 13 - Trying to add 1. observer \n");
+     ecs_observer(world, {
         .query.terms = {{ .id = EcsFinal }},
         .query.flags = EcsQueryMatchPrefab|EcsQueryMatchDisabled,
         .events = {EcsOnAdd},
         .callback = flecs_register_final
     });
-
+    printf("BOOTSTRAP: Step 13 - Trying to add 2. observer \n");
     static ecs_on_trait_ctx_t inheritable_trait = { EcsIdIsInheritable, 0 };
     ecs_observer(world, {
         .query.terms = {{ .id = EcsInheritable }},
@@ -4864,6 +4884,7 @@ void flecs_bootstrap(
         .callback = flecs_register_trait,
         .ctx = &inheritable_trait
     });
+    printf("BOOTSTRAP: Step 13 - Trying to add 3. observer \n");
 
     ecs_observer(world, {
         .query.terms = {
@@ -4873,6 +4894,7 @@ void flecs_bootstrap(
         .events = {EcsOnAdd, EcsOnRemove},
         .callback = flecs_register_on_delete
     });
+    printf("BOOTSTRAP: Step 13 - Trying to add 4. observer \n");
 
     ecs_observer(world, {
         .query.terms = {
@@ -4882,6 +4904,7 @@ void flecs_bootstrap(
         .events = {EcsOnAdd, EcsOnRemove},
         .callback = flecs_register_on_delete_object
     });
+    printf("BOOTSTRAP: Step 13 - Trying to add 5. observer \n");
 
     ecs_observer(world, {
         .query.terms = {
@@ -4891,6 +4914,7 @@ void flecs_bootstrap(
         .events = {EcsOnAdd},
         .callback = flecs_register_on_instantiate
     });
+    printf("BOOTSTRAP: Step 13 - Trying to add 6. observer \n");
 
     ecs_observer(world, {
         .query.terms = {{ .id = EcsSymmetric }},
@@ -4898,6 +4922,7 @@ void flecs_bootstrap(
         .events = {EcsOnAdd},
         .callback = flecs_register_symmetric
     });
+    printf("BOOTSTRAP: Step 13 - Trying to add 7. observer \n");
 
     ecs_observer(world, {
         .query.terms = {{ .id = EcsSingleton }},
@@ -4906,6 +4931,7 @@ void flecs_bootstrap(
         .callback = flecs_register_singleton
     });
 
+    printf("BOOTSTRAP: Step 13 - Trying to add 8. observer \n");
     static ecs_on_trait_ctx_t traversable_trait = { EcsIdTraversable, EcsIdTraversable };
     ecs_observer(world, {
         .query.terms = {{ .id = EcsTraversable }},
@@ -4914,7 +4940,7 @@ void flecs_bootstrap(
         .callback = flecs_register_trait,
         .ctx = &traversable_trait
     });
-
+    printf("BOOTSTRAP: Step 13 - Trying to add 9. observer \n");
     static ecs_on_trait_ctx_t exclusive_trait = { EcsIdExclusive, EcsIdExclusive };
     ecs_observer(world, {
         .query.terms = {{ .id = EcsExclusive  }},
@@ -4924,6 +4950,7 @@ void flecs_bootstrap(
         .ctx = &exclusive_trait
     });
 
+    printf("BOOTSTRAP: Step 13 - Trying to add 10. observer \n");
     static ecs_on_trait_ctx_t toggle_trait = { EcsIdCanToggle, 0 };
     ecs_observer(world, {
         .query.terms = {{ .id = EcsCanToggle }},
@@ -4933,6 +4960,7 @@ void flecs_bootstrap(
         .ctx = &toggle_trait
     });
 
+    printf("BOOTSTRAP: Step 13 - Trying to add 11. observer \n");
     static ecs_on_trait_ctx_t with_trait = { EcsIdWith, 0 };
     ecs_observer(world, {
         .query.terms = {
@@ -4943,6 +4971,8 @@ void flecs_bootstrap(
         .callback = flecs_register_trait_pair,
         .ctx = &with_trait
     });
+    printf("BOOTSTRAP: Step 13 - Trying to add 12. observer \n");
+
 
     static ecs_on_trait_ctx_t sparse_trait = { EcsIdIsSparse, 0 };
     ecs_observer(world, {
@@ -4952,6 +4982,7 @@ void flecs_bootstrap(
         .callback = flecs_register_trait,
         .ctx = &sparse_trait
     });
+    printf("BOOTSTRAP: Step 13 - Trying to add 13. observer \n");
 
     static ecs_on_trait_ctx_t dont_fragment_trait = { EcsIdDontFragment, 0 };
     ecs_observer(world, {
@@ -4961,6 +4992,7 @@ void flecs_bootstrap(
         .callback = flecs_register_trait,
         .ctx = &dont_fragment_trait
     });
+    printf("BOOTSTRAP: Step 13 - Trying to add 14. observer \n");
 
     ecs_observer(world, {
         .query.terms = {{ .id = EcsOrderedChildren }},
@@ -4969,6 +5001,7 @@ void flecs_bootstrap(
         .callback = flecs_register_ordered_children
     });
 
+    printf("BOOTSTRAP: Step 13 - Trying to add 15. observer \n");
     /* Entities used as slot are marked as exclusive to ensure a slot can always
      * only point to a single entity. */
     ecs_observer(world, {
@@ -4980,6 +5013,10 @@ void flecs_bootstrap(
         .callback = flecs_register_slot_of
     });
 
+
+    printf("BOOTSTRAP: Step 13 - Define observer to make sure that adding a module to a child entity also adds it to the parent.\n");
+
+
     /* Define observer to make sure that adding a module to a child entity also
      * adds it to the parent. */
     ecs_observer(world, {
@@ -4989,17 +5026,23 @@ void flecs_bootstrap(
         .callback = flecs_ensure_module_tag
     });
 
+    printf("BOOTSTRAP: Step 13 - Observer that tracks whether observers are disabled \n"); // <- HANGS HERE NEVER FINISHES ADDING THIS OBSERVER!
     /* Observer that tracks whether observers are disabled */
+    // TODO: THIS HANGS THE WASM COMPONENT IN AN INFINIT LOOP
+    /*
     ecs_observer(world, {
         .query.terms = {
-            { .id = EcsObserver },
+            { .id = EcsModule },
             { .id = EcsDisabled },
         },
         .events = {EcsOnAdd, EcsOnRemove},
-        .callback = flecs_disable_observer
+        .callback = flecs_disable_module
     });
-
+    */
+    printf("BOOTSTRAP: Step 13 - Observer that tracks whether modules are disabled \n");
     /* Observer that tracks whether modules are disabled */
+    // TODO: THIS CRASHES THE WASM COMPONENT
+    /*
     ecs_observer(world, {
         .query.terms = {
             { .id = EcsModule },
@@ -5009,6 +5052,8 @@ void flecs_bootstrap(
         .callback = flecs_disable_module
     });
 
+    */
+    printf("BOOTSTRAP: Step 14 - Set scope back to flecs core\n");
     /* Set scope back to flecs core */
     ecs_set_scope(world, EcsFlecsCore);
 
@@ -5084,7 +5129,8 @@ void flecs_bootstrap(
     /* Inherited components */
     ecs_add_pair(world, EcsIsA, EcsOnInstantiate, EcsInherit);
     ecs_add_pair(world, EcsDependsOn, EcsOnInstantiate, EcsInherit);
-    
+        
+    printf("BOOTSTRAP: Step 15 - bootstrap functions for other parts of the coden");
     /* Run bootstrap functions for other parts of the code */
     flecs_bootstrap_entity_name(world);
 
@@ -5106,6 +5152,7 @@ void flecs_bootstrap(
     flecs_bootstrap_sanity_check(world);
 
     ecs_log_pop();
+    printf("BOOTSTRAP: --- BOOTSTRAP END ---\n");
 }
 
 /**
@@ -17279,6 +17326,46 @@ void ecs_remove_all(
  */
 
 #include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef int ecs_os_api_size_t;
+
+static void* wasm_malloc_wrapper(ecs_os_api_size_t size) {
+    return malloc((size_t)size);
+}
+
+static void* wasm_realloc_wrapper(void *ptr, ecs_os_api_size_t size) {
+    return realloc(ptr, (size_t)size);
+}
+
+static void* wasm_calloc_wrapper(ecs_os_api_size_t size) {
+    // Flecs's calloc only provides a single size, while standard calloc
+    // takes (count, member_size). We emulate it with calloc(1, size).
+    return calloc(1, (size_t)size);
+}
+
+static char* wasm_strdup_wrapper(const char *str) {
+    if (!str) {
+        return NULL;
+    }
+    size_t len = strlen(str) + 1;
+    void *new_str = malloc(len);
+    if (!new_str) {
+        return NULL;
+    }
+    return (char*)memcpy(new_str, str, len);
+}
+
+// WASI uses clock_gettime for high-resolution time
+static
+void wasi_get_time(ecs_time_t *time) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    time->sec = ts.tv_sec;
+    time->nanosec = ts.tv_nsec;
+}
 
 void ecs_os_api_impl(ecs_os_api_t *api);
 
@@ -17287,8 +17374,26 @@ static bool ecs_os_api_initializing = false;
 static int ecs_os_api_init_count = 0;
 
 ecs_os_api_t ecs_os_api = {
-    .flags_ = EcsOsApiHighResolutionTimer | EcsOsApiLogWithColors,
-    .log_level_ = -1 /* Disable tracing by default, but log warnings/errors */
+    /* Memory management - assign our type-safe wrappers */
+    .malloc_ = wasm_malloc_wrapper,
+    .realloc_ = wasm_realloc_wrapper,
+    .calloc_ = wasm_calloc_wrapper,
+    .free_ = free,
+
+    /* Strings */
+    .strdup_ = wasm_strdup_wrapper,
+
+    /* Time */
+    .get_time_ = wasi_get_time,
+
+    /* Logging - use vfprintf for compatibility */
+    .log_ = (ecs_os_api_log_t)vfprintf,
+
+    /* Application termination */
+    .abort_ = abort,
+
+    /* All other functions are left as NULL, as they are not required
+     * for basic Flecs operation in a single-threaded WASM environment. */
 };
 
 int64_t ecs_os_api_malloc_count = 0;
@@ -17296,40 +17401,27 @@ int64_t ecs_os_api_realloc_count = 0;
 int64_t ecs_os_api_calloc_count = 0;
 int64_t ecs_os_api_free_count = 0;
 
-void ecs_os_set_api(
-    ecs_os_api_t *os_api)
-{
-    if (!ecs_os_api_initialized) {
-        ecs_os_api = *os_api;
-        ecs_os_api_initialized = true;
-    }
+void ecs_os_set_api(ecs_os_api_t *os_api) {
+    (void)os_api; // Unused parameter
 }
 
 ecs_os_api_t ecs_os_get_api(void) {
     return ecs_os_api;
 }
 
-void ecs_os_init(void)
-{
-    if (!ecs_os_api_initialized) {
-        ecs_os_set_api_defaults();
-    }
-    
-    if (!(ecs_os_api_init_count ++)) {
-        if (ecs_os_api.init_) {
-            ecs_os_api.init_();
-        }
-    }
+static void flecs_os_api_run_once(void) {
+    ecs_os_api.log_out_ = stdout;
 }
 
+void ecs_os_init(void) {
+    if (ecs_os_api_init_count == 0) {
+        flecs_os_api_run_once();
+    }
+    ecs_os_api_init_count++;
+}
 void ecs_os_fini(void) {
-    if (!--ecs_os_api_init_count) {
-        if (ecs_os_api.fini_) {
-            ecs_os_api.fini_();
-        }
-    }
+    ecs_os_api_init_count--;
 }
-
 /* Assume every non-glibc Linux target has no execinfo.
    This mainly fixes musl support, as musl doesn't define any preprocessor macro specifying its presence. */ 
 #if (defined(ECS_TARGET_LINUX) && !defined(__GLIBC__)) || defined(__COSMOCC__)
@@ -17380,7 +17472,7 @@ void flecs_log_msg(
     int32_t line,  
     const char *msg)
 {
-    FILE *stream = ecs_os_api.log_out_;
+    FILE *stream = stdout;
     if (!stream) {
         stream = stdout;
     }
