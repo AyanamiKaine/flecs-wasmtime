@@ -1,8 +1,20 @@
 package local:flecs;
 
-world flecs-world {
-    export create-world: func() -> u64;
-    export delete-world: func(world-handle: u64);
-    export new-entity: func(world-handle: u64) -> u64;
-    export add-component: func(world-handle: u64, entity: u64, component: u64);
+
+interface flecs-world {
+    ecs-init: func(world-handle: u64) -> u64;
+    ecs-mini: func() -> u64;
+    ecs-fini: func(world-handle: u64) -> s64;
+    ecs-is-fini: func(world-handle: u64) -> bool;
+}
+
+interface flecs-entity {
+    ecs-new: func(world-handle: u64) -> u64;
+    ecs-new-low-id: func(world-handle: u64) -> u64;
+}
+
+
+world flecs {
+    export flecs-world;
+    export flecs-entity;
 }
