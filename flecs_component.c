@@ -32,8 +32,7 @@ We could also implement some of the flecs tests.
 */
 
 // Implementation for: export create-world: func() -> world-handle;
-uint64_t exports_local_flecs_flecs_world_ecs_init(uint64_t world_handle) {
-    // This function seems ill-defined in the WIT. ecs_init creates a world, it doesn't take a handle.
+uint64_t exports_component_flecs_flecs_world_ecs_init() {
     // Let's assume the intent is just to create a standard world.
     printf("DEBUG: Creating a standard world with ecs_init().\n");
     ecs_world_t* world = ecs_init();
@@ -42,11 +41,11 @@ uint64_t exports_local_flecs_flecs_world_ecs_init(uint64_t world_handle) {
 
 /*
 To invoke this function in wasmtime-cli say:
-wasmtime run --invoke 'local:flecs/flecs-world#ecs-mini' flecs.wasm
+wasmtime run --invoke 'component:flecs/flecs-world#ecs-mini' flecs.wasm
 */
 
 // Implementation for: export ecs-mini: func() -> u64;
-uint64_t exports_local_flecs_flecs_world_ecs_mini() {
+uint64_t exports_component_flecs_flecs_world_ecs_mini() {
     printf("DEBUG: Creating a minimal world with ecs_mini().\n");
     
     // ecs_mini() creates a world without automatically importing any addons.
@@ -92,26 +91,26 @@ uint64_t exports_local_flecs_flecs_world_ecs_mini() {
 }
 
 // Implementation for: export ecs-fini: func(world-handle: u64) -> s64;
-int64_t exports_local_flecs_flecs_world_ecs_fini(uint64_t world_handle) {
+int64_t exports_component_flecs_flecs_world_ecs_fini(uint64_t world_handle) {
     ecs_world_t* world = (ecs_world_t*)world_handle;
     return ecs_fini(world);
 }
 
 // Implementation for: export ecs-is-fini: func(world-handle: u64) -> bool;
-bool exports_local_flecs_flecs_world_ecs_is_fini(uint64_t world_handle) {
+bool exports_component_flecs_flecs_world_ecs_is_fini(uint64_t world_handle) {
     ecs_world_t* world = (ecs_world_t*)world_handle;
     return ecs_is_fini(world);
 }
 
 // Implementation for: export ecs-new: func(world-handle: u64) -> u64;
-uint64_t exports_local_flecs_flecs_entity_ecs_new(uint64_t world_handle) {
+uint64_t exports_component_flecs_flecs_entity_ecs_new(uint64_t world_handle) {
     ecs_world_t* world = (ecs_world_t*)world_handle;
     ecs_entity_t entity = ecs_new(world);
     return (uint64_t)entity;
 }
 
 // Implementation for: export ecs-new-low-id: func(world-handle: u64) -> u64;
-uint64_t exports_local_flecs_flecs_entity_ecs_new_low_id(uint64_t world_handle) {
+uint64_t exports_component_flecs_flecs_entity_ecs_new_low_id(uint64_t world_handle) {
     ecs_world_t* world = (ecs_world_t*)world_handle;
     ecs_entity_t entity = ecs_new_low_id(world);
     return (uint64_t)entity;

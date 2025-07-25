@@ -1,8 +1,8 @@
-package local:flecs;
+package component:flecs;
 
 
 interface flecs-world {
-    ecs-init: func(world-handle: u64) -> u64;
+    ecs-init: func() -> u64;
     ecs-mini: func() -> u64;
     ecs-fini: func(world-handle: u64) -> s64;
     ecs-is-fini: func(world-handle: u64) -> bool;
