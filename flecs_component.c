@@ -32,11 +32,24 @@ We could also implement some of the flecs tests.
 */
 
 // Implementation for: export create-world: func() -> world-handle;
-uint64_t exports_flecs_world_create_world() {
+uint64_t exports_local_flecs_flecs_world_ecs_init(uint64_t world_handle) {
+    // This function seems ill-defined in the WIT. ecs_init creates a world, it doesn't take a handle.
+    // Let's assume the intent is just to create a standard world.
+    printf("DEBUG: Creating a standard world with ecs_init().\n");
+    ecs_world_t* world = ecs_init();
+    return (uint64_t)world;
+}
+
+/*
+To invoke this function in wasmtime-cli say:
+wasmtime run --invoke 'local:flecs/flecs-world#ecs-mini' flecs.wasm
+*/
+
+// Implementation for: export ecs-mini: func() -> u64;
+uint64_t exports_local_flecs_flecs_world_ecs_mini() {
     printf("DEBUG: Creating a minimal world with ecs_mini().\n");
     
     // ecs_mini() creates a world without automatically importing any addons.
-    // This avoids the problematic flecs.meta addon.
     ecs_world_t* world = ecs_mini();
 
     if (!world) {
@@ -46,25 +59,19 @@ uint64_t exports_flecs_world_create_world() {
 
     printf("DEBUG: World created. Manually importing safe addons...\n");
 
-    // Manually import the addons we need. These are known to be safe.
+    // Manually import the addons we need.
     ECS_IMPORT(world, FlecsSystem);
     ECS_IMPORT(world, FlecsPipeline);
     ECS_IMPORT(world, FlecsTimer);
-    ECS_IMPORT(world, FlecsDoc);
-    printf("SUCCESS: Flecs world is fully initialized and ready!\n");
     
-
+    printf("SUCCESS: Flecs world is initialized and ready!\n");
+    
+    // Your example setup code:
     ECS_COMPONENT(world, Position);
     ECS_COMPONENT(world, Velocity);
 
-    ecs_entity_t move = ecs_system(world, {
-        // Systems are entities, and by initializing the .entity field we can
-        // set some additional properties for the system like a name. While this
-        // is not mandatory, it makes a system easier to find in tools like the
-        // explorer (https://www.flecs.dev/explorer/).
-        .entity = ecs_entity(world, {
-            .name = "Move" 
-        }),
+    ecs_system(world, {
+        .entity = ecs_entity(world, { .name = "Move" }),
         .query.terms = {
             { .id = ecs_id(Position) },
             { .id = ecs_id(Velocity), .inout = EcsIn }
@@ -80,37 +87,32 @@ uint64_t exports_flecs_world_create_world() {
     ecs_set(world, e2, Position, {10, 20});
     ecs_set(world, e2, Velocity, {3, 4});
 
-    // This entity will not match as it does not have Position, Velocity
-    ecs_entity_t e3 = ecs_entity(world, { .name = "e3" });
-    ecs_set(world, e3, Position, {10, 20});
-
-    // Run the system
-    ecs_run(world, move, 0.0f, NULL);
-
     // Cast the pointer to a 64-bit integer to pass it across the WASM boundary.
     return (uint64_t)world;
 }
 
-// Implementation for: export delete-world: func(world: world-handle);
-void exports_flecs_world_delete_world(uint64_t world_handle) {
-    // ecs_fini cleans up the world.
-    // We cast the handle back to a pointer.
+// Implementation for: export ecs-fini: func(world-handle: u64) -> s64;
+int64_t exports_local_flecs_flecs_world_ecs_fini(uint64_t world_handle) {
     ecs_world_t* world = (ecs_world_t*)world_handle;
-    ecs_fini(world);
+    return ecs_fini(world);
 }
 
-// Implementation for: export new-entity: func(world: world-handle) -> entity-handle;
-uint64_t exports_flecs_world_new_entity(uint64_t world_handle) {
-    // ecs_new_id creates a new entity.
+// Implementation for: export ecs-is-fini: func(world-handle: u64) -> bool;
+bool exports_local_flecs_flecs_world_ecs_is_fini(uint64_t world_handle) {
+    ecs_world_t* world = (ecs_world_t*)world_handle;
+    return ecs_is_fini(world);
+}
+
+// Implementation for: export ecs-new: func(world-handle: u64) -> u64;
+uint64_t exports_local_flecs_flecs_entity_ecs_new(uint64_t world_handle) {
     ecs_world_t* world = (ecs_world_t*)world_handle;
     ecs_entity_t entity = ecs_new(world);
     return (uint64_t)entity;
 }
 
-// Implementation for: export add-component: func(world: world-handle, entity: entity-handle, component: component-handle);
-void exports_flecs_world_add_component(uint64_t world_handle, uint64_t entity, uint64_t component) {
-    // ecs_add_id adds a component (represented by its ID) to an entity.
+// Implementation for: export ecs-new-low-id: func(world-handle: u64) -> u64;
+uint64_t exports_local_flecs_flecs_entity_ecs_new_low_id(uint64_t world_handle) {
     ecs_world_t* world = (ecs_world_t*)world_handle;
-    ecs_add_id(world, (ecs_entity_t)entity, (ecs_id_t)component);
+    ecs_entity_t entity = ecs_new_low_id(world);
+    return (uint64_t)entity;
 }
-
