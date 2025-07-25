@@ -6,7 +6,7 @@
 
 /*
 One major problem we have is to correctly expose all of the flecs api to wasm in essence we have to create a wrapper function for every
-function we want to export.
+function we want to export. Maybe this can be generated?
 */
 
 // Implementation for: export create-world: func() -> world-handle;
