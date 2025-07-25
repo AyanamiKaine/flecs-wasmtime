@@ -115,3 +115,7 @@ uint64_t exports_component_flecs_flecs_entity_ecs_new_low_id(uint64_t world_hand
     ecs_entity_t entity = ecs_new_low_id(world);
     return (uint64_t)entity;
 }
+
+void exports_component_flecs_flecs_entity_ecs_add_id(uint64_t world_handle, ecs_entity_t entity, ecs_id_t component) {
+    ecs_add_id(world_handle, entity, component);
+}
