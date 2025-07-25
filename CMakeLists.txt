@@ -107,9 +107,9 @@ if(BUILD_WASM_COMPONENT)
 
     set(WIT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/flecs.wit")
     set(WIT_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/wit_gen")
-    set(WIT_GENERATED_C_SRC "${WIT_GEN_DIR}/flecs_world.c")
-    set(WIT_GENERATED_H "${WIT_GEN_DIR}/flecs_world.h")
-    set(WIT_GENERATED_COMPONENT_TYPE_OBJ "${WIT_GEN_DIR}/flecs_world_component_type.o")
+    set(WIT_GENERATED_C_SRC "${WIT_GEN_DIR}/flecs.c")
+    set(WIT_GENERATED_H "${WIT_GEN_DIR}/flecs.h")
+    set(WIT_GENERATED_COMPONENT_TYPE_OBJ "${WIT_GEN_DIR}/flecs_component_type.o")
     add_custom_command(
         OUTPUT ${WIT_GENERATED_C_SRC} ${WIT_GENERATED_H} ${WIT_GENERATED_COMPONENT_TYPE_OBJ}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${WIT_GEN_DIR}
